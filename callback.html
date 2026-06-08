@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REAI - Authorization Complete</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0f1117; color: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: #1a1d27; border-radius: 12px; padding: 32px; max-width: 500px; width: 100%; text-align: center; }
+        h2 { color: #10b981; margin-bottom: 16px; }
+        p { color: #94a3b8; margin-bottom: 20px; line-height: 1.6; }
+        .code-box { background: #0f1117; border: 1px solid #2a2d37; border-radius: 8px; padding: 16px; word-break: break-all; font-family: monospace; font-size: 14px; color: #818cf8; margin: 16px 0; cursor: pointer; }
+        .copy-btn { background: #10b981; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 12px; }
+        .copy-btn:hover { background: #059669; }
+        .copied { background: #059669; }
+        .instructions { font-size: 14px; color: #64748b; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Authorization Successful</h2>
+        <p>Copy the code below and paste it into REAI to complete the connection.</p>
+        <div class="code-box" id="code-display" onclick="copyCode()">Loading...</div>
+        <button class="copy-btn" id="copy-btn" onclick="copyCode()">Copy Code</button>
+        <p class="instructions">Go back to REAI and paste this code in the "Connect Lofty" dialog.</p>
+    </div>
+    <script>
+        var params = new URLSearchParams(window.location.search);
+        var code = params.get('code');
+        var error = params.get('error');
+        if (code) {
+            document.getElementById('code-display').textContent = code;
+        } else if (error) {
+            document.querySelector('h2').textContent = 'Authorization Failed';
+            document.querySelector('h2').style.color = '#ef4444';
+            document.getElementById('code-display').textContent = 'Error: ' + (params.get('error_description') || error);
+            document.getElementById('copy-btn').style.display = 'none';
+        } else {
+            document.getElementById('code-display').textContent = 'No authorization code received.';
+            document.getElementById('copy-btn').style.display = 'none';
+        }
+        function copyCode() {
+            var code = document.getElementById('code-display').textContent;
+            navigator.clipboard.writeText(code).then(function() {
+                document.getElementById('copy-btn').textContent = 'Copied!';
+                document.getElementById('copy-btn').classList.add('copied');
+            });
+        }
+    </script>
+</body>
+</html>
