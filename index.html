@@ -23,50 +23,73 @@
         }
         .logo { font-size: 48px; font-weight: 700; color: #6366f1; margin-bottom: 8px; }
         .sub { color: #8b8fa3; font-size: 16px; margin-bottom: 32px; }
-        .status { font-size: 14px; color: #8b8fa3; margin-bottom: 24px; }
+        .status { font-size: 14px; color: #8b8fa3; margin-bottom: 24px; min-height: 20px; }
         .status.connecting { color: #f59e0b; }
         .status.connected { color: #22c55e; }
         .status.error { color: #ef4444; }
         .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #2e3345; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .btn { display: inline-block; padding: 12px 24px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; text-decoration: none; margin-top: 16px; }
+        .btn { display: inline-block; padding: 12px 24px; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; text-decoration: none; margin-top: 12px; }
         .btn:hover { background: #818cf8; }
+        .btn.retry { background: #374151; font-size: 14px; padding: 8px 16px; }
+        .btn.retry:hover { background: #4b5563; }
+        .bookmark-hint {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #1e2235; border: 1px solid #2e3345; border-radius: 8px;
+            padding: 10px 20px; font-size: 13px; color: #8b8fa3; max-width: 400px;
+        }
+        .bookmark-hint strong { color: #a5b4fc; }
     </style>
 </head>
 <body>
     <div class="logo">REAI</div>
     <div class="sub">Real Estate AI Assistant</div>
     <div class="status connecting" id="status"><span class="spinner"></span>Connecting to REAI server...</div>
-    <a class="btn" id="launch-btn" style="display:none" href="#">Launch REAI</a>
+    <a class="btn" id="launch-btn" style="display:none" href="#">Open REAI</a>
+    <button class="btn retry" id="retry-btn" style="display:none" onclick="connect()">Try Again</button>
+    <div class="bookmark-hint">
+        <strong>Bookmark this page</strong> - this is your permanent REAI link. It always connects you to the latest server.
+    </div>
     <script>
+        var retryCount = 0;
+        var retryTimer = null;
+
         async function connect() {
-            const statusEl = document.getElementById('status');
-            const btnEl = document.getElementById('launch-btn');
+            var statusEl = document.getElementById('status');
+            var btnEl = document.getElementById('launch-btn');
+            var retryEl = document.getElementById('retry-btn');
+            retryEl.style.display = 'none';
+            statusEl.className = 'status connecting';
+            statusEl.innerHTML = '<span class="spinner"></span>Connecting to REAI server...';
             try {
-                const resp = await fetch('https://raw.githubusercontent.com/anirudhatalmale6-alt/reai-portal/main/tunnel.json?t=' + Date.now());
-                const data = await resp.json();
+                var resp = await fetch('https://raw.githubusercontent.com/anirudhatalmale6-alt/reai-portal/main/tunnel.json?t=' + Date.now());
+                var data = await resp.json();
                 if (data.url) {
-                    // Test if tunnel is alive
                     try {
-                        const check = await fetch(data.url + '/api/health', { mode: 'no-cors', signal: AbortSignal.timeout(5000) });
-                        statusEl.className = 'status connected';
-                        statusEl.innerHTML = '&#10003; Server is online';
-                    } catch(e) {
-                        statusEl.className = 'status connected';
-                        statusEl.innerHTML = '&#10003; Redirecting...';
-                    }
+                        await fetch(data.url + '/api/health', { mode: 'no-cors', signal: AbortSignal.timeout(8000) });
+                    } catch(e) {}
+                    statusEl.className = 'status connected';
+                    statusEl.innerHTML = '&#10003; Server is online - redirecting...';
                     btnEl.href = data.url;
                     btnEl.style.display = 'inline-block';
-                    // Auto-redirect after brief pause
-                    setTimeout(() => { window.location.href = data.url; }, 1500);
+                    retryCount = 0;
+                    setTimeout(function() { window.location.href = data.url; }, 1200);
                 } else {
-                    statusEl.className = 'status error';
-                    statusEl.textContent = 'Server URL not available. Please try again in a few minutes.';
+                    throw new Error('No URL');
                 }
             } catch(e) {
-                statusEl.className = 'status error';
-                statusEl.textContent = 'Could not reach server. Please try again shortly.';
-                btnEl.style.display = 'none';
+                retryCount++;
+                if (retryCount < 4) {
+                    statusEl.className = 'status connecting';
+                    statusEl.innerHTML = '<span class="spinner"></span>Server is starting up... retrying in 15 seconds (attempt ' + retryCount + '/3)';
+                    retryEl.style.display = 'inline-block';
+                    retryTimer = setTimeout(connect, 15000);
+                } else {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'Server appears to be offline. Please try again in a few minutes.';
+                    retryEl.style.display = 'inline-block';
+                    retryCount = 0;
+                }
             }
         }
         connect();
